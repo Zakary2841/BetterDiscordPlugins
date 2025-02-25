@@ -3,7 +3,7 @@
  * @source https://github.com/QWERTxD/BetterDiscordPlugins/blob/main/InAppNotifications/InAppNotifications.plugin.js
  * @updateUrl https://raw.githubusercontent.com/QWERTxD/BetterDiscordPlugins/main/InAppNotifications/InAppNotifications.plugin.js
  * @website https://github.com/QWERTxD/BetterDiscordPlugins/tree/main/InAppNotifications
- * @version 1.1.4
+ * @version 1.1.6
  */
 const request = require("request");
 const fs = require("fs");
@@ -14,14 +14,14 @@ const config = {
         name: "AppNotifications",
         authors: [
             {
-                name: "QWERT",
-                discord_id: "678556376640913408",
-                github_username: "QWERTxD"
+                name: "Zakary2841",
+                discord_id: "162100621741129728",
+                github_username: "Zakary2841"
             },
         ],
     github_raw:
-      "https://raw.githubusercontent.com/QWERTxD/BetterDiscordPlugins/main/InAppNotifications/InAppNotifications.plugin.js",
-    version: "1.1.5",
+      "https://raw.githubusercontent.com/Zakary2841/BetterDiscordPlugins/refs/heads/main/InAppNotifications/InAppNotifications.plugin.js",
+    version: "1.1.6",
     description:
       "Displays notifications such as new messages, friends added in Discord.",
 	},
@@ -206,12 +206,17 @@ const config = {
       } = DiscordModules;
       const { Webpack } = BdApi;
 
-      const ChannelTypes = Webpack.getModule(Webpack.Filters.byProps("GUILD_TEXT"), { searchExports: true });
+      const ChannelTypes = WebpackModules.getByProps("GUILD_TEXT", "PUBLIC_THREAD") || {};
+	  // const ChannelTypes = WebpackModules.getModule(m => m?.GUILD_TEXT !== undefined, { searchExports: true }) || {};
+	  // This should also work but going to test to see which is better.
       const MuteStore = WebpackModules.getByProps("isSuppressEveryoneEnabled");
       const isMentioned = Webpack.getModule(x=>x.isRawMessageMentioned)
       const Markdown = WebpackModules.getByProps("parse", "parseTopic");
       const GuildStore = Webpack.getStore("GuildStore")
       const AckUtils = { ack: Webpack.getModule(Webpack.Filters.byStrings("CHANNEL_ACK"), { searchExports: true }) };
+	  const Error_Message = "There was an error while trying to start the plugin.\n" +
+      "Try checking the console for any errors from this plugin.\n" +
+      "For any further support, please raise an issue on Github: https://bit.ly/41wgkP2 (https://github.com/Zakary2841/BetterDiscordPlugins/issues)";
       const CallJoin = React.createElement(
         "svg",
         {},
@@ -586,8 +591,7 @@ const config = {
               e
             );
             BdApi.alert(
-              "InAppNotifications",
-              "There was an error while trying to start the plugin.\n Try checking the console for any errors from this plugin.\nFor any further support, join my support server (https://discord.gg/zJbXFXNAhJ)"
+              "InAppNotifications",Error_Message
             );
           }
 
@@ -605,7 +609,7 @@ const config = {
               );
               try {
                 QWERTLib.Toasts.create(
-                  "There was an error while trying to start the plugin.\n Try checking the console for any errors from this plugin.\nFor any further support, click here to join my support server.",
+                  Error_Message,
                   {
                     author: "In App Notifications",
                     color: colors.dnd,
@@ -625,7 +629,7 @@ const config = {
               } catch {
                 BdApi.alert(
                   "InAppNotifications",
-                  "There was an error while trying to start the plugin.\n Try checking the console for any errors from this plugin.\nFor any further support, join my support server (https://discord.gg/zJbXFXNAhJ)"
+                  Error_Message
                 );
               }
             }
@@ -644,7 +648,7 @@ const config = {
               );
               try {
                 QWERTLib.Toasts.create(
-                  "There was an error while trying to start the plugin.\n Try checking the console for any errors from this plugin.\nFor any further support, click here to join my support server.",
+                  Error_Message,
                   {
                     author: "In App Notifications",
                     icon: React.createElement(CloseIcon, {
@@ -663,7 +667,7 @@ const config = {
               } catch {
                 BdApi.alert(
                   "InAppNotifications",
-                  "There was an error while trying to start the plugin.\n Try checking the console for any errors from this plugin.\nFor any further support, join my support server (https://discord.gg/zJbXFXNAhJ)"
+                  Error_Message
                 );
               }
             }
@@ -986,22 +990,26 @@ const config = {
         supposedToNotify(message, channel) {
           if (message.author.id === UserStore.getCurrentUser().id) return false;
           if (channel.type === ChannelTypes["PUBLIC_THREAD"] && !channel.member) return false;
-          const suppressEveryone = MuteStore.isSuppressEveryoneEnabled(
-            message.guild_id || "@me"
-          );
-          const suppressRoles = MuteStore.isSuppressRolesEnabled(
-            message.guild_id || "@me"
-          );
+          
+          const suppressEveryone = MuteStore.isSuppressEveryoneEnabled(message.guild_id || "@me");
+          const suppressRoles = MuteStore.isSuppressRolesEnabled(message.guild_id || "@me");
+          
           if (MuteStore.allowAllMessages(channel)) return true;
-          const SomethingHereShrug = isMentioned.isRawMessageMentioned(
-            {
+          
+          if (isMentioned && typeof isMentioned.isRawMessageMentioned === 'function') {
+            return isMentioned.isRawMessageMentioned({
               rawMessage: message,
               userId: UserStore.getCurrentUser().id,
               suppressEveryone,
               suppressRoles
-            }
-          );
-          return SomethingHereShrug
+            });
+          } else {
+            const currentUserId = UserStore.getCurrentUser().id;
+            const mentionedUsers = message.mentions.map(user => user.id);
+            return mentionedUsers.includes(currentUserId) ||
+                  (!suppressEveryone && message.mention_everyone) ||
+                  (!suppressRoles && message.mention_roles.length > 0);
+          }
         }
 
         checkSettings(message, channel) {
