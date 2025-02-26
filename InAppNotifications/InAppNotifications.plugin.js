@@ -5,7 +5,7 @@
  * @website https://github.com/Zakary2841/BetterDiscordPlugins/tree/main/InAppNotifications
  * @version 1.1.7
  */
- 
+/*@cc_on
 @if (@_jscript)
     
     // Offer to self-install for clueless users that try to run this directly.
