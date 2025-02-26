@@ -1,11 +1,33 @@
 /**
  * @name AppNotifications
- * @source https://github.com/QWERTxD/BetterDiscordPlugins/blob/main/InAppNotifications/InAppNotifications.plugin.js
- * @updateUrl https://raw.githubusercontent.com/QWERTxD/BetterDiscordPlugins/main/InAppNotifications/InAppNotifications.plugin.js
- * @website https://github.com/QWERTxD/BetterDiscordPlugins/tree/main/InAppNotifications
- * @version 1.1.6
+ * @source https://github.com/Zakary2841/BetterDiscordPlugins/blob/main/InAppNotifications/InAppNotifications.plugin.js
+ * @updateUrl https://raw.githubusercontent.com/Zakary2841/BetterDiscordPlugins/main/InAppNotifications/InAppNotifications.plugin.js
+ * @website https://github.com/Zakary2841/BetterDiscordPlugins/tree/main/InAppNotifications
+ * @version 1.1.7
  */
-const request = require("request");
+ 
+@if (@_jscript)
+    
+    // Offer to self-install for clueless users that try to run this directly.
+    var shell = WScript.CreateObject("WScript.Shell");
+    var fs = new ActiveXObject("Scripting.FileSystemObject");
+    var pathPlugins = shell.ExpandEnvironmentStrings("%APPDATA%\\BetterDiscord\\plugins");
+    var pathSelf = WScript.ScriptFullName;
+    // Put the user at ease by addressing them in the first person
+    shell.Popup("It looks like you've mistakenly tried to run me directly. \n(Don't do that!)", 0, "I'm a plugin for BetterDiscord", 0x30);
+    if (fs.GetParentFolderName(pathSelf) === fs.GetAbsolutePathName(pathPlugins)) {
+        shell.Popup("I'm in the correct folder already.", 0, "I'm already installed", 0x40);
+    } else if (!fs.FolderExists(pathPlugins)) {
+        shell.Popup("I can't find the BetterDiscord plugins folder.\nAre you sure it's even installed?", 0, "Can't install myself", 0x10);
+    } else if (shell.Popup("Should I copy myself to BetterDiscord's plugins folder for you?", 0, "Do you need some help?", 0x34) === 6) {
+        fs.CopyFile(pathSelf, fs.BuildPath(pathPlugins, fs.GetFileName(pathSelf)), true);
+        // Show the user where to put plugins in the future
+        shell.Exec("explorer " + pathPlugins);
+        shell.Popup("I'm installed!", 0, "Successfully installed", 0x40);
+    }
+    WScript.Quit();
+
+@else@*/
 const fs = require("fs");
 const path = require("path");
 
@@ -18,19 +40,24 @@ const config = {
                 discord_id: "162100621741129728",
                 github_username: "Zakary2841"
             },
+            {
+                name: "QWERT",
+                discord_id: "678556376640913408",
+                github_username: "QWERTxD"
+            },
         ],
     github_raw:
-      "https://raw.githubusercontent.com/Zakary2841/BetterDiscordPlugins/refs/heads/main/InAppNotifications/InAppNotifications.plugin.js",
-    version: "1.1.6",
+      "https://raw.githubusercontent.com/Zakary2841/BetterDiscordPlugins/main/InAppNotifications/InAppNotifications.plugin.js",
+    version: "1.1.7",
     description:
       "Displays notifications such as new messages, friends added in Discord.",
 	},
   changelog: [
     {
-      "title": "Discriminators",
-      "type": "added",
+      "title": "Plugin fixes",
+      "type": "fixed",
       "items": [
-        "Modified how usernames and display names are displayed in notifications.",
+        "Fixed to work with the new version of Discord/BetterDiscord. I plan on maintaining this unless someone makes something better as I like this plugin.",
       ]
     }
   ],
@@ -159,20 +186,25 @@ const config = {
             confirmText: "Download",
             cancelText: "Cancel",
             onConfirm: () => {
-              request.get(
+              BdApi.Net.fetch(
                 "https://raw.githubusercontent.com/Zakary2841/BetterDiscordPlugins/main/InAppNotifications/InAppNotifications.plugin.js",
-                (error, response, body) => {
-                  if (error)
-                    return electron.shell.openExternal(
-                      "https://betterdiscord.net/ghdl?url=https://raw.githubusercontent.com/Zakary2841/BetterDiscordPlugins/main/InAppNotifications/InAppNotifications.plugin.js"
-                    );
 
+               )
+              .then((response) => {
+              if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+              return response.text();
+              })
+              .then((body) => {
                   fs.writeFileSync(
                     path.join(BdApi.Plugins.folder, "0PluginLibrary.plugin.js"),
-                    body
-                  );
-                }
-              );
+            body
+          );
+        })
+        .catch(() => {
+          electron.shell.openExternal(
+            "https://betterdiscord.net/ghdl?url=https://raw.githubusercontent.com/Zakary2841/BetterDiscordPlugins/main/InAppNotifications/InAppNotifications.plugin.js"
+          );
+		});
             },
           }
         );
@@ -207,7 +239,7 @@ const config = {
       const { Webpack } = BdApi;
 
 
-          // Manually defining this for now
+          // Manually defining this for now using discord dev API reference https://discord.com/developers/docs/resources/channel#channel-object-channel-types
       const ChannelTypes = {
           GUILD_TEXT: 0,                // a text channel within a server
           DM: 1,                        // a direct message between users
@@ -223,18 +255,7 @@ const config = {
           GUILD_FORUM: 15,              // Channel that can only contain threads
           GUILD_MEDIA: 16               // Channel that can only contain threads, similar to GUILD_FORUM channels
       };
-      // Create a reverse lookup object
-      const ChannelTypeNames = Object.fromEntries(
-      Object.entries(ChannelTypes).map(([name, value]) => [value, name])
-      );
-	  // Function to convert the number to the name
-	  function getChannelNameById(id) {
-	    return ChannelTypeNames[id] || 'Unknown';
-	  	  }
-	  
-      // const ChannelTypes = WebpackModules.getByProps("GUILD_TEXT", "PUBLIC_THREAD") || {};
-	  // const ChannelTypes = WebpackModules.getModule(m => m?.GUILD_TEXT !== undefined, { searchExports: true }) || {};
-	  // This should also work but going to test to see which is better.
+	  const currentUserId = UserStore.getCurrentUser().id;
       const MuteStore = WebpackModules.getByProps("isSuppressEveryoneEnabled");
       const isMentioned = Webpack.getModule(x=>x.isRawMessageMentioned)
       const Markdown = WebpackModules.getByProps("parse", "parseTopic");
@@ -1012,28 +1033,17 @@ const config = {
         }
 
         supposedToNotify(message, channel) {
-          if (message.author.id === UserStore.getCurrentUser().id) return false;
-          if (channel.type === ChannelTypes["PUBLIC_THREAD"] && !channel.member) return false;
-          
           const suppressEveryone = MuteStore.isSuppressEveryoneEnabled(message.guild_id || "@me");
           const suppressRoles = MuteStore.isSuppressRolesEnabled(message.guild_id || "@me");
+          const guild = GuildStore.getGuild(channel.guild_id);
+          const member = guild ? GuildMemberStore.getMember(guild.id, currentUserId) : null;
+          const hasMentionedRole = message.mention_roles.some(roleId => member?.roles.includes(roleId));
+		  
           
           if (MuteStore.allowAllMessages(channel)) return true;
-          
-          if (isMentioned && typeof isMentioned.isRawMessageMentioned === 'function') {
-            return isMentioned.isRawMessageMentioned({
-              rawMessage: message,
-              userId: UserStore.getCurrentUser().id,
-              suppressEveryone,
-              suppressRoles
-            });
-          } else {
-            const currentUserId = UserStore.getCurrentUser().id;
-            const mentionedUsers = message.mentions.map(user => user.id);
-            return mentionedUsers.includes(currentUserId) ||
-                  (!suppressEveryone && message.mention_everyone) ||
-                  (!suppressRoles && message.mention_roles.length > 0);
-          }
+		  if (hasMentionedRole || (!suppressEveryone && message.mention_everyone) || (!suppressRoles && hasMentionedRole && message.mention_roles.length > 0))  return true;
+		  // No cases matched so return false
+		  return false;
         }
 
         checkSettings(message, channel) {
@@ -1047,8 +1057,7 @@ const config = {
           const ignoreDMGroups = this.settings.ignoreDMGroups;
 
           const disableOnDnd = this.settings.disableOnDnd;
-          const isDnd =
-            UserStatusStore.getStatus(UserStore.getCurrentUser().id) === "dnd";
+          const isDnd = UserStatusStore.getStatus(currentUserId) === "dnd";
           const disableIfNoFocus = this.settings.disableIfNoFocus;
           const hasFocus = document.hasFocus();
 
@@ -1111,3 +1120,4 @@ const config = {
 
       return plugin;
     })(global.ZeresPluginLibrary.buildPlugin(config));
+/*@end@*/

@@ -1,9 +1,9 @@
 # In App Notifications
  [![Download][icon]][link] 
 
-Displays notifications such as new messages, friends added in Discord.
+Displays notifications such as new messages, and friends added in Discord.
 ### Preview 
-![Preview](https://media.discordapp.net/attachments/824985697047937024/841708321287307274/unknown.png)
+![Preview](https://github.com/user-attachments/assets/6c2758bd-ab6b-49e0-99cb-78de7a62611a)
 
-[icon]: https://img.shields.io/badge/Download-In%20App%20Notifications-brightgreen.svg
-[link]: http://qwertxd.github.io/?pluginName=InAppNotifications&src=uk
+[icon]: https://github.com/user-attachments/assets/1811e2ea-eb07-4e4c-b163-74194c3e44cc
+[link]: InAppNotifications.plugin.js?raw=true
